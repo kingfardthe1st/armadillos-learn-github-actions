@@ -32,5 +32,22 @@ jobs:
         id: fmt
         run: terraform fmt -check
 
+      - name: "Terraform Init"
+        id: init
+        run: terraform init -backend-config=$BACKEND_CONFIG_FILE
+
+      - name: "Terraform Validate"
+        id: validate
+        run: terraform validate
+
+      - name: "Terraform Plan"
+        id: plan
+        run: terraform plan
+
+      - name: "Terraform Apply"
+        id: apply
+        run: terraform apply -auto-approve 
+
+
 
 
