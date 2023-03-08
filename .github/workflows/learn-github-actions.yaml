@@ -5,10 +5,10 @@ jobs:
   provision-infrax-dev:
     environment: dev
     env:
-      # ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      # ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      # ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      # ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       TF_VAR_resource_group_name: ${{ vars.RESOURCE_GROUP_NAME }}
       TF_VAR_resource_base_name: ${{ vars.RESOURCE_BASE_NAME }}
       TF_VAR_resource_suffix: ${{ vars.RESOURCE_SUFFIX }}
@@ -27,7 +27,11 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           enable-AzPSSession: true
-
+      - name: setup-pre-requisite-resources
+        shell: bash
+        run: |
+          az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
+          
       - name: "Terraform Format"
         id: fmt
         run: terraform fmt -check
