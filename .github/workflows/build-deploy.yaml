@@ -1,0 +1,63 @@
+name: Deploy Function App
+
+on:
+  workflow_call:
+      inputs:
+          environment:
+            required: true
+            type: string
+          dotnet_version:
+            required: true
+            type: string
+          functionapp_package_path:
+            required: true
+            type: string
+
+      secrets:
+        azure_rbac_credentials:
+          required: true
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+    environment: ${{ inputs.environment }}
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_RBAC_CREDENTIALS: ${{ secrets.azure_rbac_credentials }}
+      AZURE_FUNCTIONAPP_PACKAGE_PATH: ${{ inputs.functionapp_package_path }}
+      DOTNET_VERSION: ${{ inputs.dotnet_version }}
+      AZURE_FUNCTIONAPP_NAME: ${{ vars.RESOURCE_BASE_NAME }}-${{ vars.RESOURCE_SUFFIX }}-function-app
+    steps:
+      - name: 'Checkout GitHub Action'
+        uses: actions/checkout@v2
+      - name: 'Login via Azure CLI'
+        uses: Azure/login@v1
+        with:
+          creds: ${{ env.AZURE_RBAC_CREDENTIALS }}
+          enable-AzPSSession: true
+      - name: setup-pre-requisite-resources
+        shell: bash
+        run: |
+          az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID
+          
+      - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: 'Resolve Project Dependencies Using Dotnet'
+        shell: pwsh
+        run: |
+          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+          dotnet build --configuration Release --output ./output
+          popd
+
+      - name: 'Run Azure Functions Action'
+        uses: Azure/functions-action@v1
+        id: fa
+        with:
+          app-name: '${{ env.AZURE_FUNCTIONAPP_NAME }}'
+          slot-name: 'production'
+          package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'   
